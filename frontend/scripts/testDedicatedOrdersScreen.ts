@@ -57,20 +57,20 @@ function assert(condition: boolean, testName: string, failureDetails?: string) {
   );
 }
 
-// TEST 3: ConversationalCommerceScreen.tsx has NO Order History cards/section
+// TEST 3: ConversationalCommerceScreen.tsx includes dynamic Order History connected to backend API
 {
   const shopScreenCode = fs.readFileSync(path.join(__dirname, '../src/components/screens/ConversationalCommerceScreen.tsx'), 'utf-8');
-  const hasOrderHistoryHeading = /<h2[^>]*>\s*Order History\s*<\/h2>/i.test(shopScreenCode);
-  const hasCustomerOrdersState = shopScreenCode.includes('customerOrders');
-  const hasOrderCards = shopScreenCode.includes('order.baseProduct') || shopScreenCode.includes('order.aiAddonProduct');
+  const hasOrderHistoryHeading = /Order History/i.test(shopScreenCode);
+  const hasCustomerOrdersState = shopScreenCode.includes('customerOrders') || shopScreenCode.includes('fetchCustomerOrders');
+  const hasApiCall = shopScreenCode.includes('/api/customers/') || shopScreenCode.includes('/api/orders/');
 
   assert(
-    !hasOrderHistoryHeading && !hasCustomerOrdersState && !hasOrderCards,
-    'TEST 3: Order History section and order list cards are completely removed from /shop'
+    hasOrderHistoryHeading && hasCustomerOrdersState && hasApiCall,
+    'TEST 3: Order History section and dynamic API loader are present on /shop'
   );
   assert(
-    shopScreenCode.includes('openOrders'),
-    'TEST 3b: /shop provides direct navigation to openOrders'
+    shopScreenCode.includes('Loading orders...'),
+    'TEST 3b: /shop provides loading state "Loading orders..." preventing premature empty render'
   );
 }
 

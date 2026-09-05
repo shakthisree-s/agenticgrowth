@@ -3,7 +3,33 @@ import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { shoppingSearchService, ShoppingSearchResult, generateShoppingSuggestions } from '../../services/shoppingSearchService';
 import { recommendationEngine, RecommendationItem, CustomerActivityContext } from '../../services/recommendationEngine';
-import { Lock, Sparkles, Send, Trash2, ArrowUpRight, ShoppingBag, Plus, ArrowRight, Check, Package } from 'lucide-react';
+import { Lock, Sparkles, Send, Trash2, ArrowUpRight, ShoppingBag, Plus, ArrowRight, Check, Package, Clock, RefreshCw, AlertCircle, CheckCircle, ShieldCheck } from 'lucide-react';
+import { API_BASE_URL } from '../../config/api';
+
+interface CustomerOrderRecord {
+  order_id: string;
+  booking_id: string;
+  date: string;
+  formatted_date?: string;
+  amount: number;
+  payment_status: string;
+  payment_method: string;
+  status: string;
+  customer_id?: string;
+  customer_name?: string;
+  merchant_id?: string;
+  base_product?: string;
+  ai_addon_product?: string;
+  ai_attribution?: string;
+  ai_attributed_revenue?: number;
+  items?: Array<{
+    productId: string;
+    productName: string;
+    price: number;
+    quantity: number;
+    isAddon: boolean;
+  }>;
+}
 
 interface ChatMessage {
   id: string;
@@ -32,6 +58,8 @@ export const ConversationalCommerceScreen: React.FC = () => {
     openCustomerAuth,
     openOrders,
     currentCustomer,
+    allCustomers,
+    customers,
     recordCustomerShoppingEvent,
     transactions
   } = useApp();
@@ -44,6 +72,107 @@ export const ConversationalCommerceScreen: React.FC = () => {
   const [viewedProductHistory, setViewedProductHistory] = useState<Product[]>([]);
   const [currentRecommendations, setCurrentRecommendations] = useState<RecommendationItem[]>([]);
   const lastProcessedTxId = useRef<string | null>(null);
+
+  // Real Customer Order History State
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrderRecord[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState<boolean>(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+
+  // Resolve active customer consistently
+  const activeCustomer = currentCustomer ||
+    (allCustomers?.[activeMerchant?.id] || []).find(c => c.email.toLowerCase() === 'customer@urbankart.demo') ||
+    customers?.[0] ||
+    null;
+
+  const activeCustId = activeCustomer?.id || 'cust_sports_demo';
+
+  // Fetch real order records from backend
+  const fetchCustomerOrders = async (custId: string) => {
+    if (!custId) {
+      setCustomerOrders([]);
+      setIsLoadingOrders(false);
+      return;
+    }
+    setIsLoadingOrders(true);
+    setOrdersError(null);
+
+    console.log(`[ORDER HISTORY] fetching orders for customer_id = ${custId}`);
+
+    const endpoints = [
+      `${API_BASE_URL}/api/customers/${encodeURIComponent(custId)}/orders`,
+      `/api/customers/${encodeURIComponent(custId)}/orders`,
+      `${API_BASE_URL}/api/orders/${encodeURIComponent(custId)}`,
+      `/api/orders/${encodeURIComponent(custId)}`
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const data = await res.json();
+            let parsedOrders: CustomerOrderRecord[] = [];
+            if (data && Array.isArray(data.orders)) {
+              parsedOrders = data.orders;
+            } else if (Array.isArray(data)) {
+              parsedOrders = data.map((o: any) => ({
+                order_id: o.id,
+                booking_id: o.razorpayOrderId || o.id,
+                date: o.createdAt || new Date().toISOString(),
+                formatted_date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Sep 5, 2026',
+                amount: o.totalAmount,
+                payment_status: o.status === 'SUCCESS' ? 'Success' : o.status,
+                payment_method: o.paymentMethod || 'UPI',
+                status: o.status || 'SUCCESS',
+                customer_id: o.customerId,
+                customer_name: o.customerName,
+                merchant_id: o.merchantId,
+                base_product: o.baseProduct,
+                ai_addon_product: o.aiAddonProduct,
+                ai_attribution: o.aiAttribution,
+                ai_attributed_revenue: o.aiAttributedRevenue,
+                items: o.items
+              }));
+            }
+            console.log(`[ORDER HISTORY] customer_id = ${custId}, orders_found = ${parsedOrders.length}`);
+            setCustomerOrders(parsedOrders);
+            setIsLoadingOrders(false);
+            return;
+          }
+        }
+      } catch (err) {
+        // Fallback to next endpoint
+      }
+    }
+    setIsLoadingOrders(false);
+    setOrdersError('Failed to fetch order history from backend.');
+  };
+
+  useEffect(() => {
+    if (activeCustId) {
+      fetchCustomerOrders(activeCustId);
+    } else {
+      setCustomerOrders([]);
+      setIsLoadingOrders(false);
+    }
+  }, [activeCustId, transactions]);
+
+  const formatDisplayDate = (dateStr?: string, formattedDateStr?: string) => {
+    if (formattedDateStr) return formattedDateStr;
+    if (!dateStr) return 'Sep 5, 2026';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
 
   // Active products in the current merchant store (excluding archived / zero stock)
   const activeProducts = products.filter(p => {
@@ -1146,6 +1275,323 @@ export const ConversationalCommerceScreen: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* ORDER HISTORY SECTION (/shop) */}
+      {/* ------------------------------------------------------------------ */}
+      <section
+        id="order-history"
+        style={{
+          background: '#FFFFFF',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '16px',
+          padding: '28px 32px',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}
+      >
+        {/* Order History Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #F0F0F0', paddingBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: '#111111',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Package size={18} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#111111', margin: 0 }}>
+                  Order History
+                </h2>
+                {!isLoadingOrders && (
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    background: customerOrders.length > 0 ? '#111111' : '#F0F0F0',
+                    color: customerOrders.length > 0 ? '#FFFFFF' : '#666666',
+                    padding: '2px 8px',
+                    borderRadius: '12px'
+                  }}>
+                    {customerOrders.length} {customerOrders.length === 1 ? 'order' : 'orders'}
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#777777', margin: '2px 0 0 0' }}>
+                Verified purchases & Razorpay Test Mode settlement records for <strong style={{ color: '#111111' }}>{activeCustomer?.name || 'Customer'}</strong> ({activeCustId})
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => fetchCustomerOrders(activeCustId)}
+              disabled={isLoadingOrders}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#FAFAFA',
+                border: '1px solid #E0E0E0',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '0.76rem',
+                fontWeight: 600,
+                color: '#333333',
+                cursor: isLoadingOrders ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoadingOrders) e.currentTarget.style.borderColor = '#111111';
+              }}
+              onMouseLeave={(e) => {
+                if (!isLoadingOrders) e.currentTarget.style.borderColor = '#E0E0E0';
+              }}
+            >
+              <RefreshCw size={13} style={{ animation: isLoadingOrders ? 'spin 1s linear infinite' : 'none' }} />
+              <span>{isLoadingOrders ? 'Refreshing...' : 'Refresh Orders'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 1. Loading State */}
+        {isLoadingOrders && (
+          <div style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            background: '#FAFAFA',
+            borderRadius: '12px',
+            border: '1px solid #EBEBEB'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 18px',
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid #E5E5E5',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+            }}>
+              <RefreshCw size={16} color="#111111" style={{ animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#111111' }}>
+                Loading orders...
+              </span>
+            </div>
+            <div style={{ fontSize: '0.76rem', color: '#888888', marginTop: '12px' }}>
+              Querying live orders for customer <strong style={{ color: '#555555' }}>{activeCustId}</strong> from backend...
+            </div>
+          </div>
+        )}
+
+        {/* 2. Error State */}
+        {!isLoadingOrders && ordersError && (
+          <div style={{
+            padding: '18px 20px',
+            background: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertCircle size={18} color="#DC2626" />
+              <div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#991B1B' }}>
+                  Unable to load orders
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#B91C1C' }}>
+                  {ordersError}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => fetchCustomerOrders(activeCustId)}
+              className="btn-secondary btn-sm"
+              style={{ borderColor: '#FCA5A5', color: '#991B1B', background: '#FFFFFF' }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* 3. Empty State */}
+        {!isLoadingOrders && !ordersError && customerOrders.length === 0 && (
+          <div style={{
+            padding: '44px 20px',
+            textAlign: 'center',
+            background: '#FAFAFA',
+            borderRadius: '12px',
+            border: '1px solid #EBEBEB'
+          }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              background: '#FFFFFF',
+              border: '1px solid #E0E0E0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px auto',
+              color: '#888888'
+            }}>
+              <Package size={20} />
+            </div>
+            <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#111111', marginBottom: '4px' }}>
+              No orders yet
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#777777', maxWidth: '380px', margin: '0 auto 16px auto', lineHeight: 1.45 }}>
+              Your completed purchases and Razorpay test payments will appear here once you place an order.
+            </p>
+          </div>
+        )}
+
+        {/* 4. Populated Orders List */}
+        {!isLoadingOrders && !ordersError && customerOrders.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {customerOrders.map((order, idx) => (
+              <div
+                key={order.order_id || idx}
+                style={{
+                  background: '#FAFAFA',
+                  border: '1px solid #EAEAEA',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#111111';
+                  e.currentTarget.style.background = '#FFFFFF';
+                  e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#EAEAEA';
+                  e.currentTarget.style.background = '#FAFAFA';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                {/* Top Row: Order ID / Booking ID, Date, Amount, Badges */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#111111', fontFamily: 'var(--font-mono)' }}>
+                        Order #{order.booking_id || order.order_id}
+                      </span>
+                      {order.booking_id && order.booking_id !== order.order_id && (
+                        <span style={{ fontSize: '0.7rem', color: '#777777', background: '#EDEDED', padding: '1px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>
+                          Ref: {order.order_id}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '0.76rem', color: '#666666' }}>
+                      <Clock size={12} color="#888888" />
+                      <span>{formatDisplayDate(order.date, order.formatted_date)}</span>
+                    </div>
+                  </div>
+
+                  {/* Price & Payment Status Badge */}
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#111111' }}>
+                      ₹{order.amount.toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: order.payment_status === 'Success' ? '#065F46' : '#991B1B',
+                        background: order.payment_status === 'Success' ? '#ECFDF5' : '#FEF2F2',
+                        border: `1px solid ${order.payment_status === 'Success' ? '#A7F3D0' : '#FECACA'}`,
+                        padding: '2px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        {order.payment_status === 'Success' && <CheckCircle size={10} />}
+                        Payment: {order.payment_status || 'Success'}
+                      </span>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        color: '#444444',
+                        background: '#EEEEEE',
+                        padding: '2px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        {order.payment_method || 'UPI'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Product details & AI Attribution */}
+                {(order.base_product || order.items) && (
+                  <div style={{
+                    paddingTop: '10px',
+                    borderTop: '1px solid #F0F0F0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    fontSize: '0.8rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#333333' }}>
+                      <span style={{ fontWeight: 600 }}>
+                        {order.base_product || (order.items && order.items[0]?.productName) || 'Store item'}
+                      </span>
+                      {order.ai_addon_product && (
+                        <span style={{ color: '#059669', fontWeight: 600 }}>
+                          + {order.ai_addon_product}
+                        </span>
+                      )}
+                    </div>
+
+                    {order.ai_attribution && (
+                      <span style={{
+                        fontSize: '0.7rem',
+                        color: '#059669',
+                        background: '#ECFDF5',
+                        border: '1px solid #A7F3D0',
+                        padding: '1px 8px',
+                        borderRadius: '12px',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <Sparkles size={10} />
+                        <span>{order.ai_attribution}</span>
+                        {order.ai_attributed_revenue ? ` (+₹${order.ai_attributed_revenue.toLocaleString('en-IN')})` : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

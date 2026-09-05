@@ -27,3 +27,13 @@ def get_customer_activity(
     db: Session = Depends(get_db)
 ):
     return CustomerService.get_customer_activities(db, customer_id, limit=limit)
+
+
+@router.get("/{customer_id}/orders", response_model=schemas.CustomerOrdersResponse)
+def get_customer_orders(customer_id: str, db: Session = Depends(get_db)):
+    """
+    Get customer order history from existing transaction records.
+    Returns customer_id, order_count, and sorted order records.
+    """
+    return CustomerService.get_customer_orders(db, customer_id)
+

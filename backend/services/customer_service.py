@@ -192,3 +192,82 @@ class CustomerService:
             )
             for a in acts
         ]
+
+    @staticmethod
+    def get_customer_orders(db: Session, customer_id: str) -> schemas.CustomerOrdersResponse:
+        """
+        Retrieves real order/transaction history for the specified customer_id from SQLite.
+        Maps existing fields: booking_id (razorpay_order_id/id), date, amount, payment_status, payment_method.
+        """
+        target_ids = {customer_id}
+        cust = (
+            db.query(models.Customer)
+            .filter((models.Customer.id == customer_id) | (models.Customer.email == customer_id))
+            .first()
+        )
+        if cust:
+            target_ids.add(cust.id)
+            if cust.email:
+                target_ids.add(cust.email)
+
+        orders = (
+            db.query(models.Order)
+            .filter(models.Order.customer_id.in_(target_ids))
+            .order_by(models.Order.created_at.desc())
+            .all()
+        )
+
+        formatted_orders: List[schemas.CustomerOrderItem] = []
+        for o in orders:
+            # Map payment status nicely e.g. "SUCCESS" -> "Success"
+            p_status = "Success"
+            if o.status:
+                if o.status.upper() == "SUCCESS":
+                    p_status = "Success"
+                elif o.status.upper() == "FAILED":
+                    p_status = "Failed"
+                else:
+                    p_status = o.status.title()
+
+            date_str = o.created_at.strftime("%b %d, %Y") if o.created_at else "Sep 5, 2026"
+
+            items_schema = [
+                schemas.OrderItemSchema(
+                    productId=i.product_id,
+                    productName=i.product_name,
+                    price=i.price,
+                    quantity=i.quantity,
+                    isAddon=i.is_addon
+                )
+                for i in o.items
+            ]
+
+            formatted_orders.append(
+                schemas.CustomerOrderItem(
+                    order_id=o.id,
+                    booking_id=o.razorpay_order_id or o.id,
+                    date=o.created_at.isoformat() if o.created_at else utc_now().isoformat(),
+                    formatted_date=date_str,
+                    amount=float(o.total_amount),
+                    payment_status=p_status,
+                    payment_method=o.payment_method or "UPI",
+                    status=o.status or "SUCCESS",
+                    customer_id=o.customer_id,
+                    customer_name=o.customer_name,
+                    merchant_id=o.merchant_id,
+                    base_product=o.base_product,
+                    ai_addon_product=o.ai_addon_product,
+                    ai_attribution=o.ai_attribution,
+                    ai_attributed_revenue=float(o.ai_attributed_revenue or 0.0),
+                    items=items_schema
+                )
+            )
+
+        print(f"[ORDER HISTORY] customer_id = {customer_id}, orders_found = {len(formatted_orders)}")
+
+        return schemas.CustomerOrdersResponse(
+            customer_id=cust.id if cust else customer_id,
+            order_count=len(formatted_orders),
+            orders=formatted_orders
+        )
+

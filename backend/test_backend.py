@@ -348,6 +348,32 @@ class TestMerchantOSBackend(unittest.TestCase):
         self.assertIn(payments_resp.status_code, [200, 404])
         print(f"[PASS] Razorpay order payments endpoint (/api/razorpay/orders/{rzp_order_id}/payments)")
 
+    def test_17_get_customer_orders_endpoint(self):
+        # 1. Test existing customer with orders (cust_sports_demo)
+        resp_demo = client.get("/api/customers/cust_sports_demo/orders")
+        self.assertEqual(resp_demo.status_code, 200)
+        data_demo = resp_demo.json()
+        self.assertEqual(data_demo["customer_id"], "cust_sports_demo")
+        self.assertGreater(data_demo["order_count"], 0)
+        self.assertEqual(len(data_demo["orders"]), data_demo["order_count"])
+        
+        first_order = data_demo["orders"][0]
+        self.assertTrue(first_order["order_id"].startswith("ORD_"))
+        self.assertIn("booking_id", first_order)
+        self.assertIn("date", first_order)
+        self.assertGreater(first_order["amount"], 0)
+        self.assertEqual(first_order["payment_status"], "Success")
+        self.assertEqual(first_order["payment_method"], "UPI")
+
+        # 2. Test customer with no orders (cust_sports_102)
+        resp_empty = client.get("/api/customers/cust_sports_102/orders")
+        self.assertEqual(resp_empty.status_code, 200)
+        data_empty = resp_empty.json()
+        self.assertEqual(data_empty["customer_id"], "cust_sports_102")
+        self.assertEqual(data_empty["order_count"], 0)
+        self.assertEqual(data_empty["orders"], [])
+        print(f"[PASS] Customer Order History endpoint (/api/customers/{{customer_id}}/orders) tested with cust_sports_demo ({data_demo['order_count']} orders) & cust_sports_102 (0 orders)")
+
 
 if __name__ == "__main__":
     print("==========================================================")

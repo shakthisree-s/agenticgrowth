@@ -241,6 +241,30 @@ class OrderResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class CustomerOrderItem(BaseModel):
+    order_id: str
+    booking_id: str
+    date: str
+    formatted_date: Optional[str] = None
+    amount: float
+    payment_status: str
+    payment_method: str
+    status: str
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    merchant_id: Optional[str] = None
+    base_product: Optional[str] = None
+    ai_addon_product: Optional[str] = None
+    ai_attribution: Optional[str] = None
+    ai_attributed_revenue: Optional[float] = 0.0
+    items: Optional[List[OrderItemSchema]] = []
+
+
+class CustomerOrdersResponse(BaseModel):
+    customer_id: str
+    order_count: int
+    orders: List[CustomerOrderItem] = []
+
 
 # ---------------------------------------------------------------------------
 # Payment Schemas (Razorpay Test Mode)
