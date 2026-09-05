@@ -6,10 +6,8 @@ MerchantOS AI is a multi-agent commerce platform that helps merchants **discover
 
 ## 🚀 Live Demo
 
-- **Customer Store:** https://agenticgrowth.onrender.com/shop
-- **Merchant Admin:** https://agenticgrowth.onrender.com/
-- **Backend API:** https://merchantos-backend.onrender.com
-- **Swagger API Docs:** https://merchantos-backend.onrender.com/docs
+- **Project Link** https://agenticgrowth.onrender.com/
+
 
 ## 🤖 AI Agent Workforce
 
