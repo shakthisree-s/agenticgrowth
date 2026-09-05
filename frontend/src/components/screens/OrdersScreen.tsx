@@ -35,6 +35,8 @@ export const OrdersScreen: React.FC = () => {
   const {
     activeMerchant,
     currentCustomer,
+    allCustomers,
+    customers,
     openStorefront,
     openCustomerAuth,
     transactions
@@ -42,6 +44,13 @@ export const OrdersScreen: React.FC = () => {
 
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const activeCustomer = currentCustomer ||
+    (allCustomers[activeMerchant?.id] || []).find(c => c.email.toLowerCase() === 'customer@urbankart.demo') ||
+    customers[0] ||
+    null;
+
+  const activeCustId = activeCustomer?.id || '';
 
   const fetchOrders = async (custId: string) => {
     if (!custId) {
@@ -77,13 +86,12 @@ export const OrdersScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    const activeCustId = currentCustomer?.id || 'cust_sports_demo';
     if (activeCustId) {
       fetchOrders(activeCustId);
     } else {
       setOrders([]);
     }
-  }, [currentCustomer?.id, transactions]);
+  }, [activeCustId, transactions]);
 
   const formatOrderDate = (dateStr?: string) => {
     if (!dateStr) return '05 Sep 2026';
@@ -172,8 +180,10 @@ export const OrdersScreen: React.FC = () => {
           </button>
 
           <button
-            onClick={() => fetchOrders(currentCustomer?.id || 'cust_sports_demo')}
-            disabled={isLoading}
+            onClick={() => {
+              if (activeCustId) fetchOrders(activeCustId);
+            }}
+            disabled={isLoading || !activeCustId}
             style={{
               display: 'flex',
               alignItems: 'center',

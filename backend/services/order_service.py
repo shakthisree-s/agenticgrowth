@@ -178,8 +178,22 @@ class OrderService:
         addon_amount = addon_prod.price if addon_prod else 0.0
         total_amount = base_amount + addon_amount
 
-        cust = db.query(models.Customer).filter(models.Customer.id == request.customerId).first()
+        cust = db.query(models.Customer).filter(
+            (models.Customer.id == request.customerId) | 
+            (models.Customer.email == request.customerId)
+        ).first()
         cust_name = request.customerName or (cust.name if cust else "UrbanKart Shopper")
+
+        if not cust:
+            cust = models.Customer(
+                id=request.customerId,
+                merchant_id=request.merchantId or "merchant_sports",
+                name=cust_name,
+                email=request.customerId if "@" in request.customerId else f"{request.customerId}@urbankart.demo",
+                created_at=utc_now()
+            )
+            db.add(cust)
+            db.flush()
 
         timestamp_str = utc_now().strftime("%Y%m%d%H%M%S")
         order_id = f"ORD_{request.merchantId or 'sports'}_{timestamp_str}_{int(total_amount)}"
@@ -191,7 +205,7 @@ class OrderService:
 
         order = models.Order(
             id=order_id,
-            customer_id=request.customerId,
+            customer_id=cust.id,
             customer_name=cust_name,
             merchant_id=request.merchantId or "merchant_sports",
             razorpay_order_id=rzp_order_id,
@@ -233,11 +247,11 @@ class OrderService:
             db.add(addon_item)
 
         # Clear cart on order creation
-        OrderService.clear_cart(db, request.customerId)
+        OrderService.clear_cart(db, cust.id)
 
         # Record activity & audit
         act = models.CustomerActivity(
-            customer_id=request.customerId,
+            customer_id=cust.id,
             merchant_id=order.merchant_id,
             event_type="PURCHASE_COMPLETED",
             product_id=base_prod.id,
@@ -255,7 +269,7 @@ class OrderService:
             title=f"Order Placed: {order.id}",
             description=f"Captured ₹{total_amount:,} ({ai_attribution}). Base: {base_prod.name}{' + ' + addon_prod.name if addon_prod else ''}.",
             tool_used="RazorpayTestGateway",
-            customer_id=request.customerId,
+            customer_id=cust.id,
             customer_name=cust_name,
             status="success"
         )
@@ -268,9 +282,20 @@ class OrderService:
 
     @staticmethod
     def get_orders_by_customer(db: Session, customer_id: str) -> List[schemas.OrderResponse]:
+        target_ids = {customer_id}
+        cust = (
+            db.query(models.Customer)
+            .filter((models.Customer.id == customer_id) | (models.Customer.email == customer_id))
+            .first()
+        )
+        if cust:
+            target_ids.add(cust.id)
+            if cust.email:
+                target_ids.add(cust.email)
+
         orders = (
             db.query(models.Order)
-            .filter(models.Order.customer_id == customer_id)
+            .filter(models.Order.customer_id.in_(target_ids))
             .order_by(models.Order.created_at.desc())
             .all()
         )

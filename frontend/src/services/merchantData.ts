@@ -824,6 +824,41 @@ export const INITIAL_MERCHANT_CUSTOMERS: Record<string, Customer[]> = {
 
   merchant_fashion: [
     {
+      id: 'cust_sports_demo',
+      merchantId: 'merchant_fashion',
+      name: 'UrbanKart Shopper',
+      email: 'customer@urbankart.demo',
+      phone: '+91 98765 43210',
+      location: 'Mumbai, MH',
+      createdAt: '2026-08-30T10:00:00.000Z',
+      lifetimeValue: 18900,
+      status: 'high_intent',
+      avatarColor: '#111111',
+      currentIntent: 'HIGH_PURCHASE_INTENT',
+      nextBestAction: 'Explore store catalog with AI Shopping Agent',
+      metrics: {
+        totalOrders: 0,
+        totalSpend: 0,
+        averageOrderValue: 0,
+        lastPurchaseAt: null
+      },
+      behavior: {
+        viewedTimes: 3,
+        lastViewedProduct: 'Urban Performance Kurti & Stole Ensemble',
+        cartValue: 0,
+        cartItems: [],
+        daysActive: 2,
+        hasPurchased: false,
+        intentScore: 88,
+        preferredCategories: ['Ethnic Wear', 'Apparel'],
+        viewedProducts: ['Urban Performance Kurti & Stole Ensemble'],
+        searchQueries: ['kurti'],
+        cartAdds: [],
+        abandonedCarts: [],
+        purchases: []
+      }
+    },
+    {
       id: 'cust_fash_201',
       merchantId: 'merchant_fashion',
       name: 'Priya Sharma',
@@ -980,6 +1015,41 @@ export const INITIAL_MERCHANT_CUSTOMERS: Record<string, Customer[]> = {
   ],
 
   merchant_tech: [
+    {
+      id: 'cust_sports_demo',
+      merchantId: 'merchant_tech',
+      name: 'UrbanKart Shopper',
+      email: 'customer@urbankart.demo',
+      phone: '+91 98765 43210',
+      location: 'Mumbai, MH',
+      createdAt: '2026-08-30T10:00:00.000Z',
+      lifetimeValue: 18900,
+      status: 'high_intent',
+      avatarColor: '#111111',
+      currentIntent: 'HIGH_PURCHASE_INTENT',
+      nextBestAction: 'Explore store catalog with AI Shopping Agent',
+      metrics: {
+        totalOrders: 0,
+        totalSpend: 0,
+        averageOrderValue: 0,
+        lastPurchaseAt: null
+      },
+      behavior: {
+        viewedTimes: 3,
+        lastViewedProduct: 'MagShield Kevlar Phone Case (iPhone 15 Pro)',
+        cartValue: 0,
+        cartItems: [],
+        daysActive: 2,
+        hasPurchased: false,
+        intentScore: 88,
+        preferredCategories: ['Tech Accessories'],
+        viewedProducts: ['MagShield Kevlar Phone Case (iPhone 15 Pro)'],
+        searchQueries: ['phone case'],
+        cartAdds: [],
+        abandonedCarts: [],
+        purchases: []
+      }
+    },
     {
       id: 'cust_tech_301',
       merchantId: 'merchant_tech',

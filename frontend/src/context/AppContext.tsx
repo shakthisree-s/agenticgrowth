@@ -1766,12 +1766,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const aiAddonAmount = recommendedAddon ? recommendedAddon.price : 0;
     const totalAmount = baseAmount + aiAddonAmount;
 
-    // Identify active customer
-    const targetCust = currentCustomer || customers.find(c => c.name.includes('Aarav') || c.name.includes('Priya')) || customers[0] || {
-      id: 'CUS_001',
-      name: 'Priya Sharma',
-      email: 'priya@example.com'
-    };
+    // Identify active customer (strict session synchronization)
+    const targetCust: Customer = currentCustomer ||
+      (allCustomers[activeMerchantId] || []).find(c => c.email.toLowerCase() === 'customer@urbankart.demo') ||
+      customers[0] || {
+        id: 'cust_sports_demo',
+        merchantId: activeMerchantId,
+        name: 'UrbanKart Shopper',
+        email: 'customer@urbankart.demo',
+        phone: '+91 98765 43210',
+        location: 'Online Storefront',
+        createdAt: new Date().toISOString(),
+        lifetimeValue: 0,
+        status: 'active',
+        avatarColor: '#111111',
+        currentIntent: 'HIGH_PURCHASE_INTENT',
+        nextBestAction: 'Explore store catalog with AI Shopping Agent',
+        metrics: {
+          totalOrders: 0,
+          totalSpend: 0,
+          averageOrderValue: 0,
+          lastPurchaseAt: null
+        },
+        behavior: {
+          viewedTimes: 1,
+          lastViewedProduct: '',
+          cartValue: 0,
+          cartItems: [],
+          daysActive: 1,
+          hasPurchased: false,
+          intentScore: 50,
+          preferredCategories: [],
+          viewedProducts: [],
+          searchQueries: [],
+          cartAdds: [],
+          abandonedCarts: [],
+          purchases: []
+        }
+      };
+
+    // Ensure session is synchronized so /orders immediately fetches for targetCust.id
+    if (!currentCustomer || currentCustomer.id !== targetCust.id) {
+      setCurrentCustomer(targetCust);
+      try {
+        localStorage.setItem(`merchantos_customer_session_${activeMerchantId}`, JSON.stringify(targetCust));
+        localStorage.setItem(`merchantos_customer_${activeMerchantId}`, JSON.stringify(targetCust));
+      } catch (e) {}
+    }
 
     const rzpRandom = Math.random().toString(36).substring(2, 9).toUpperCase();
     const nowIso = new Date().toISOString();
