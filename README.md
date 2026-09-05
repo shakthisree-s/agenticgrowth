@@ -39,11 +39,6 @@ Revenue Attribution
       ↓
 Activity + Audit Trail
 
----
-
-## 1. Project Structure
-
-```
 MerchantOS/
 ├── backend/                 # Python FastAPI + SQLite + SQLAlchemy Backend
 │   ├── main.py
@@ -62,6 +57,7 @@ MerchantOS/
 │   │   ├── order_service.py
 │   │   └── payment_service.py
 │   └── test_backend.py
+│
 ├── frontend/                # React 19 + TypeScript + Vite Storefront & Admin App
 │   ├── src/
 │   ├── public/
@@ -74,44 +70,6 @@ MerchantOS/
 │   ├── tsconfig.node.json
 │   ├── vite.config.ts
 │   └── .oxlintrc.json
+│
 ├── .gitignore
 └── README.md
-```
-## ⚡ Real-Time Example
-
-A customer visits the MerchantOS AI store and adds a **₹6,999 running shoe** to the cart.
-
-MerchantOS AI detects the customer's purchase intent and identifies a cross-sell opportunity.
-
-```text
-Customer adds Running Shoe — ₹6,999
-              ↓
-Customer Intent Agent
-"Customer is likely interested in fitness products"
-              ↓
-Merchandising Agent
-Recommends Hydration Flask — ₹499
-              ↓
-Policy & Risk Agent
-Checks merchant rules → ALLOWED
-              ↓
-Commerce Execution Agent
-Adds recommendation to the customer journey
-              ↓
-Razorpay Test Checkout
-₹7,498 total payment
-              ↓
-Payment Verification
-Server verifies Razorpay signature
-              ↓
-Order Created
-              ↓
-AI-attributed Revenue
-₹499 additional revenue
-              ↓
-Activity + Audit Trail
-Decision and execution are recorded
-
-
-```
-
