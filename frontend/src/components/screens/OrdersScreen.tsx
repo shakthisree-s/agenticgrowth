@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Package, Sparkles, RefreshCw, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { API_BASE_URL } from '../../config/api';
 
 interface BackendOrderItem {
   productId: string;
@@ -50,9 +51,8 @@ export const OrdersScreen: React.FC = () => {
     setIsLoading(true);
 
     const endpoints = [
-      `/api/orders/${encodeURIComponent(custId)}`,
-      `http://127.0.0.1:8001/api/orders/${encodeURIComponent(custId)}`,
-      `http://127.0.0.1:8000/api/orders/${encodeURIComponent(custId)}`
+      `${API_BASE_URL}/api/orders/${encodeURIComponent(custId)}`,
+      `/api/orders/${encodeURIComponent(custId)}`
     ];
 
     for (const url of endpoints) {

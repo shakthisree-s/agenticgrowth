@@ -34,6 +34,7 @@ import {
   INITIAL_COLLABORATION_EVENTS
 } from '../agents/supervisorAgent';
 import { policyEngine } from '../services/policyEngine';
+import { API_BASE_URL } from '../config/api';
 import confetti from 'canvas-confetti';
 
 export interface MultiAgentSimulationStep {
@@ -1993,9 +1994,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const persistOrder = async () => {
         const endpoints = [
-          '/api/orders',
-          'http://127.0.0.1:8001/api/orders',
-          'http://127.0.0.1:8000/api/orders'
+          `${API_BASE_URL}/api/orders`,
+          '/api/orders'
         ];
         for (const url of endpoints) {
           try {
