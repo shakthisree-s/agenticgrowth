@@ -57,46 +57,35 @@ function assert(condition: boolean, testName: string, failureDetails?: string) {
   );
 }
 
-// TEST 3: ConversationalCommerceScreen.tsx includes dynamic Order History connected to backend API
+// TEST 3: ConversationalCommerceScreen.tsx is clean with order history completely removed from /shop
 {
   const shopScreenCode = fs.readFileSync(path.join(__dirname, '../src/components/screens/ConversationalCommerceScreen.tsx'), 'utf-8');
-  const hasOrderHistoryHeading = /Order History/i.test(shopScreenCode);
-  const hasCustomerOrdersState = shopScreenCode.includes('customerOrders') || shopScreenCode.includes('fetchCustomerOrders');
-  const hasApiCall = shopScreenCode.includes('/api/customers/') || shopScreenCode.includes('/api/orders/');
+  const hasNoOrderHistorySection = !shopScreenCode.includes('id="order-history"');
+  const hasNoCustomerOrdersState = !shopScreenCode.includes('customerOrders');
+  const hasNoOrderHistoryButton = !shopScreenCode.includes('Order History');
+  const hasNoUnableToLoadOrders = !shopScreenCode.includes('Unable to load orders');
 
   assert(
-    hasOrderHistoryHeading && hasCustomerOrdersState && hasApiCall,
-    'TEST 3: Order History section and dynamic API loader are present on /shop'
-  );
-  assert(
-    shopScreenCode.includes('Loading orders...'),
-    'TEST 3b: /shop provides loading state "Loading orders..." preventing premature empty render'
+    hasNoOrderHistorySection && hasNoCustomerOrdersState && hasNoOrderHistoryButton && hasNoUnableToLoadOrders,
+    'TEST 3: Order History section, buttons, and state are completely removed from /shop'
   );
 }
 
-// TEST 4: OrdersScreen.tsx contains required fields, layout, and API endpoint
+// TEST 4: OrdersScreen.tsx is preserved and functional
 {
   const ordersScreenCode = fs.readFileSync(path.join(__dirname, '../src/components/screens/OrdersScreen.tsx'), 'utf-8');
 
   assert(
     ordersScreenCode.includes('/api/orders/'),
-    'TEST 4a: OrdersScreen fetches dynamically from GET /api/orders/{customer_id}'
+    'TEST 4a: Separate /orders page is preserved and fetches from GET /api/orders/{customer_id}'
   );
   assert(
     ordersScreenCode.includes('No orders yet.') && ordersScreenCode.includes('Your completed purchases will appear here.'),
-    'TEST 4b: Empty state accurately displays prompt copy: "No orders yet." and "Your completed purchases will appear here."'
+    'TEST 4b: /orders contains valid empty state prompt'
   );
   assert(
-    ordersScreenCode.includes('Payment: Paid') && ordersScreenCode.includes('Status: Confirmed'),
-    'TEST 4c: Order cards render Payment: Paid and Status: Confirmed badges'
-  );
-  assert(
-    ordersScreenCode.includes('AI Recommended') && ordersScreenCode.includes('AI Attributed Revenue'),
-    'TEST 4d: Order cards display AI Recommended badges and AI-attributed revenue breakdown'
-  );
-  assert(
-    ordersScreenCode.includes('baseProduct') && ordersScreenCode.includes('baseAmount') && ordersScreenCode.includes('totalAmount'),
-    'TEST 4e: Order cards display Order ID, date, base product, quantity, base amount, and total amount'
+    ordersScreenCode.includes('Continue Shopping') && ordersScreenCode.includes('Refresh'),
+    'TEST 4c: /orders contains navigation action buttons'
   );
 }
 
@@ -105,16 +94,20 @@ function assert(condition: boolean, testName: string, failureDetails?: string) {
   const appCode = fs.readFileSync(path.join(__dirname, '../src/App.tsx'), 'utf-8');
 
   assert(
-    appCode.includes('OrdersScreen') && appCode.includes('ConversationalCommerceScreen'),
-    'TEST 5a: App.tsx imports and renders OrdersScreen and ConversationalCommerceScreen'
+    appCode.includes('ConversationalCommerceScreen') && appCode.includes('OrdersScreen'),
+    'TEST 5a: App.tsx preserves both ConversationalCommerceScreen (/shop) and OrdersScreen (/orders)'
   );
   assert(
-    appCode.includes('openStorefront') && appCode.includes('openOrders'),
-    'TEST 5b: App.tsx provides seamless navigation between /shop and /orders'
+    appCode.includes('Shop') && appCode.includes('openStorefront'),
+    'TEST 5b: App.tsx preserves "Shop" navigation button'
   );
   assert(
     appCode.includes('Back to Home') && appCode.includes('exitStorefront'),
     'TEST 5c: App.tsx preserves "Back to Home" returning to the public home/landing page'
+  );
+  assert(
+    !appCode.includes('<Package size={13} />\n                <span>Order History</span>'),
+    'TEST 5d: App.tsx header has cleanly removed Order History button from shop page navigation'
   );
 }
 
@@ -125,5 +118,5 @@ console.log('======================================================\n');
 if (failed > 0) {
   process.exit(1);
 } else {
-  console.log('ALL DEDICATED ORDERS SCREEN & /SHOP CLEANUP TESTS PASSED! 🛍️📦✨\n');
+  console.log('ALL /SHOP CLEANUP & /ORDERS PRESERVATION TESTS PASSED! 🛍️📦✨\n');
 }

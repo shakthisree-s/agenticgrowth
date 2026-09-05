@@ -25,7 +25,7 @@ import { AgentDetailDrawer } from './components/modals/AgentDetailDrawer';
 import { AgentTraceModal } from './components/modals/AgentTraceModal';
 import { CustomerSimulationDrawer } from './components/modals/CustomerSimulationDrawer';
 import { CustomerAuthModal } from './components/modals/CustomerAuthModal';
-import { ArrowLeft, Home, User, UserPlus, LogIn, ShoppingBag, Package } from 'lucide-react';
+import { ArrowLeft, Home, User, UserPlus, LogIn, ShoppingBag } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
   const {
@@ -37,7 +37,6 @@ const MainLayout: React.FC = () => {
     openCustomerAuth,
     signOutCustomer,
     openStorefront,
-    openOrders,
     exitStorefront,
     logout
   } = useApp();
@@ -91,58 +90,28 @@ const MainLayout: React.FC = () => {
 
           {/* Center / Right Customer Identity & Navigation Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {/* Customer Storefront / Order History Navigation Switcher */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: '#F5F5F5',
-              padding: '3px',
-              borderRadius: '8px',
-              border: '1px solid #EAEAEA'
-            }}>
-              <button
-                onClick={openStorefront}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: activeScreen === 'conversational' ? '#FFFFFF' : 'transparent',
-                  color: activeScreen === 'conversational' ? '#111111' : '#666666',
-                  boxShadow: activeScreen === 'conversational' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <ShoppingBag size={13} />
-                <span>Shop</span>
-              </button>
-              <button
-                onClick={openOrders}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: activeScreen === 'orders' ? '#FFFFFF' : 'transparent',
-                  color: activeScreen === 'orders' ? '#111111' : '#666666',
-                  boxShadow: activeScreen === 'orders' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <Package size={13} />
-                <span>Order History</span>
-              </button>
-            </div>
+            {/* Shop Navigation Button */}
+            <button
+              onClick={openStorefront}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                border: '1px solid #EAEAEA',
+                cursor: 'pointer',
+                background: activeScreen === 'conversational' ? '#111111' : '#FFFFFF',
+                color: activeScreen === 'conversational' ? '#FFFFFF' : '#333333',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <ShoppingBag size={13} />
+              <span>Shop</span>
+            </button>
 
             <div style={{ width: '1px', height: '24px', background: '#E5E5E5' }} />
 
@@ -287,7 +256,7 @@ const MainLayout: React.FC = () => {
           </div>
         </header>
 
-        {/* Customer Storefront / Orders Canvas */}
+        {/* Customer Storefront / Dedicated Orders Canvas */}
         <main style={{ flex: 1, padding: '36px 48px 80px 48px', maxWidth: '1240px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
           {activeScreen === 'orders' ? <OrdersScreen /> : <ConversationalCommerceScreen />}
         </main>
